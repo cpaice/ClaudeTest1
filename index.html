@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Art History Walk</title>
+<meta name="description" content="A walk-through museum of the major movements in art history, using public-domain images from Wikimedia Commons.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #1a1714;
+    --ink: #f3ece0;
+    --ink-soft: #c9bfae;
+    --accent: #c9a45c;
+    --frame: #3b2b1a;
+    --frame-hi: #8a6a3e;
+    --plaque: #f6f0e4;
+    --plaque-ink: #2a241c;
+    --rail: #0f0d0b;
+    --room-h: calc(100dvh - 120px);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Inter, system-ui, sans-serif;
+    overflow: hidden;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px;
+    background: var(--rail);
+    border-bottom: 1px solid #2c2620;
+    position: relative; z-index: 5;
+  }
+  header h1 {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 700; font-size: 1.5rem; margin: 0; letter-spacing: .02em;
+  }
+  header h1 span { color: var(--accent); }
+  .nav-btns { display: flex; gap: 8px; align-items: center; }
+  .nav-btns button {
+    background: transparent; color: var(--ink); border: 1px solid #4a4036;
+    border-radius: 999px; padding: 6px 14px; font: inherit; font-size: .85rem; cursor: pointer;
+  }
+  .nav-btns button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .nav-btns button:disabled { opacity: .35; cursor: default; }
+  #roomCount { font-size: .8rem; color: var(--ink-soft); min-width: 54px; text-align: center; }
+
+  /* ---------- Hall (horizontal rooms) ---------- */
+  #hall {
+    height: var(--room-h);
+    display: flex;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+  }
+  #hall::-webkit-scrollbar { display: none; }
+
+  .room {
+    flex: 0 0 100vw; height: 100%;
+    scroll-snap-align: start;
+    position: relative;
+    background:
+      linear-gradient(to bottom, transparent 82%, rgba(0,0,0,.35) 82%, rgba(0,0,0,.55) 100%),
+      radial-gradient(ellipse at 50% 0%, rgba(255,240,210,.18), transparent 60%),
+      var(--wall, #5a4a3a);
+    display: grid;
+    grid-template-columns: minmax(260px, 340px) 1fr;
+    gap: 32px;
+    padding: 32px 40px 0;
+    overflow: hidden;
+  }
+  /* floor boards */
+  .room::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 18%;
+    background: repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 2px, transparent 2px 140px),
+                linear-gradient(to bottom, #3a2a1c, #22180f);
+    border-top: 6px solid rgba(0,0,0,.35);
+    z-index: 0;
+  }
+  .room > * { position: relative; z-index: 1; }
+
+  .plaque {
+    align-self: start;
+    background: var(--plaque); color: var(--plaque-ink);
+    padding: 22px 22px 18px;
+    border-radius: 3px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    max-height: calc(var(--room-h) - 90px);
+    overflow-y: auto;
+  }
+  .plaque .era { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: #8a7458; font-weight: 600; }
+  .plaque h2 { font-family: "Cormorant Garamond", serif; font-size: 2.1rem; line-height: 1.05; margin: 6px 0 4px; }
+  .plaque .dates { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 1.15rem; color: #6b5a44; margin-bottom: 12px; }
+  .plaque p { font-size: .9rem; line-height: 1.55; margin: 0 0 12px; }
+  .plaque h3 { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; margin: 14px 0 6px; color: #8a7458; }
+  .plaque ul { margin: 0; padding-left: 18px; font-size: .85rem; line-height: 1.5; }
+  .plaque .artists { font-size: .85rem; line-height: 1.5; }
+
+  .wall {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 36px 44px;
+    align-content: center;
+    padding-bottom: 14%;
+    min-width: 0;
+  }
+  .work { margin: 0; display: flex; flex-direction: column; align-items: center; max-width: 34%; min-width: 160px; }
+  .work button {
+    all: unset; cursor: zoom-in; display: block;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--frame-hi), var(--frame) 40%, #2a1e12 60%, var(--frame-hi));
+    box-shadow: 0 18px 30px rgba(0,0,0,.55), inset 0 0 0 2px rgba(0,0,0,.4);
+    transition: transform .25s ease;
+  }
+  .work button:hover, .work button:focus-visible { transform: translateY(-4px); }
+  .work button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  .work .mat { background: #efe9dc; padding: 10px; }
+  .work img {
+    display: block; max-height: calc(var(--room-h) * .42); max-width: 100%;
+    min-width: 120px; min-height: 120px; object-fit: contain; background: #d8d0c0;
+  }
+  .work .missing {
+    width: 200px; height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 16px; background: #d8d0c0; color: #4a4036; font-size: .78rem; line-height: 1.4;
+  }
+  .work .missing a { color: #7a4f1a; }
+  .work .missing strong { font-family: "Cormorant Garamond", serif; font-size: 1.1rem; display: block; margin-bottom: 6px; }
+  .label {
+    margin-top: 12px; background: var(--plaque); color: var(--plaque-ink);
+    padding: 6px 10px; font-size: .75rem; line-height: 1.35; max-width: 240px; text-align: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,.35); border-radius: 2px;
+  }
+  .label em { font-family: "Cormorant Garamond", serif; font-size: .98rem; font-style: italic; display: block; }
+
+  /* Entrance & exit rooms */
+  .room.special { grid-template-columns: 1fr; place-items: center; text-align: center; }
+  .room.special .intro { max-width: 640px; padding-bottom: 12%; }
+  .room.special h2 { font-family: "Cormorant Garamond", serif; font-size: clamp(2.4rem, 6vw, 4.2rem); margin: 0 0 8px; line-height: 1; }
+  .room.special p { color: var(--ink-soft); line-height: 1.6; }
+  .room.special .cta {
+    margin-top: 18px; background: var(--accent); color: #1a1714; border: 0; border-radius: 999px;
+    padding: 12px 26px; font: 600 1rem Inter, sans-serif; cursor: pointer;
+  }
+  .room.special .hint { font-size: .8rem; margin-top: 18px; opacity: .8; }
+  .room.special a { color: var(--accent); }
+
+  /* ---------- Timeline rail ---------- */
+  #rail {
+    height: 64px; background: var(--rail); border-top: 1px solid #2c2620;
+    position: relative; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
+  }
+  #rail ol { list-style: none; margin: 0; padding: 0 12px; display: flex; height: 100%; align-items: center; gap: 2px; width: max-content; min-width: 100%; }
+  #rail li button {
+    all: unset; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 6px 8px; border-radius: 6px; min-width: 64px;
+  }
+  #rail li button .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); border: 2px solid #0f0d0b; box-shadow: 0 0 0 1px #4a4036; }
+  #rail li button .nm { font-size: .66rem; color: var(--ink-soft); white-space: nowrap; }
+  #rail li button .yr { font-size: .6rem; color: #7d7365; }
+  #rail li button:hover .nm, #rail li button:focus-visible .nm { color: var(--ink); }
+  #rail li button:focus-visible { outline: 2px solid var(--accent); }
+  #rail li button[aria-current="true"] { background: #2a241d; }
+  #rail li button[aria-current="true"] .dot { box-shadow: 0 0 0 2px var(--accent); transform: scale(1.25); }
+  #rail li button[aria-current="true"] .nm { color: var(--accent); font-weight: 600; }
+
+  /* ---------- Lightbox ---------- */
+  #lightbox {
+    border: 0; padding: 0; background: transparent; max-width: 100vw; max-height: 100dvh; width: 100vw; height: 100dvh; margin: 0;
+  }
+  #lightbox::backdrop { background: rgba(8,6,4,.92); }
+  #lightbox .lb-inner { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px 16px; color: var(--ink); }
+  #lightbox img { max-width: 94vw; max-height: 74dvh; object-fit: contain; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  #lightbox .cap { text-align: center; max-width: 720px; }
+  #lightbox .cap em { font-family: "Cormorant Garamond", serif; font-size: 1.6rem; display: block; }
+  #lightbox .cap small { color: var(--ink-soft); display: block; margin-top: 4px; }
+  #lightbox .cap a { color: var(--accent); font-size: .8rem; }
+  #lightbox .close {
+    position: absolute; top: 14px; right: 16px; background: transparent; border: 1px solid #4a4036; color: var(--ink);
+    border-radius: 999px; width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer;
+  }
+
+  /* ---------- Small screens ---------- */
+  @media (max-width: 760px) {
+    header { padding: 0 16px; }
+    header h1 { font-size: 1.15rem; }
+    .nav-btns button { padding: 6px 10px; }
+    #roomCount { display: none; }
+    .room { grid-template-columns: 1fr; grid-auto-rows: max-content; padding: 16px 16px 0; gap: 18px; overflow-y: auto; align-content: start; }
+    .room::after { position: fixed; display: none; }
+    .plaque { max-height: none; overflow: visible; }
+    .wall { padding-bottom: 24px; gap: 24px; }
+    .work { max-width: 100%; }
+    .work img { max-height: 46dvh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #hall { scroll-behavior: auto; }
+    .work button { transition: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Art History <span>Walk</span></h1>
+  <div class="nav-btns">
+    <button id="prevBtn" aria-label="Previous room">&larr; Back</button>
+    <span id="roomCount" aria-live="polite"></span>
+    <button id="nextBtn" aria-label="Next room">Next &rarr;</button>
+  </div>
+</header>
+
+<main id="hall" aria-label="Museum rooms"></main>
+
+<nav id="rail" aria-label="Timeline of movements"><ol></ol></nav>
+
+<dialog id="lightbox" aria-label="Artwork detail">
+  <button class="close" aria-label="Close">&times;</button>
+  <div class="lb-inner">
+    <img alt="">
+    <div class="cap"></div>
+  </div>
+</dialog>
+
+<script>
+/*
+ * Images come from Wikimedia Commons via Special:FilePath, which redirects to
+ * a scaled thumbnail of the named file. Every work below is in the public
+ * domain. Movements whose works are still under copyright (most art after
+ * ~1930) get placeholder frames that link to where you can see the real thing.
+ */
+const COMMONS = "https://commons.wikimedia.org/wiki/";
+const imgURL = (file, w) => COMMONS + "Special:FilePath/" + encodeURIComponent(file.replace(/ /g, "_")) + "?width=" + w;
+const pageURL = file => COMMONS + "File:" + encodeURIComponent(file.replace(/ /g, "_"));
+
+const MOVEMENTS = [
+  {
+    id: "prehistoric", name: "Prehistoric Art", era: "Ancient World", dates: "c. 40,000 – 3000 BCE", year: "40,000 BCE",
+    wall: "#5b4433", dot: "#a0714a",
+    text: "The earliest surviving images were painted deep inside caves with charcoal and ground minerals. Animals dominate: bison, horses, aurochs and deer, often layered over one another and shaped around the natural bulges of the rock.",
+    traits: ["Mineral pigments: ochre, charcoal, manganese", "Animals far outnumber humans", "Ritual or magical purpose (debated)"],
+    artists: "Anonymous: the painters of Lascaux, Chauvet and Altamira",
+    works: [
+      { title: "Lascaux cave painting", artist: "Unknown", year: "c. 17,000 BCE", file: "Lascaux painting.jpg" },
+      { title: "Venus of Willendorf", artist: "Unknown", year: "c. 25,000 BCE", file: "Venus von Willendorf 01.jpg" }
+    ]
+  },
+  {
+    id: "egypt", name: "Ancient Egypt", era: "Ancient World", dates: "c. 3100 – 30 BCE", year: "3100 BCE",
+    wall: "#7a6236", dot: "#d2a446",
+    text: "For three thousand years Egyptian art followed strict conventions built for eternity. Figures combine a profile head with a frontal eye and shoulders, and their size reflects rank rather than distance.",
+    traits: ["Composite view of the human body", "Hierarchical scale", "Art made for tombs and the afterlife"],
+    artists: "Workshops of royal sculptors, such as Thutmose (bust of Nefertiti)",
+    works: [
+      { title: "Mask of Tutankhamun", artist: "Unknown", year: "c. 1323 BCE", file: "Tutmask.jpg" },
+      { title: "Bust of Nefertiti", artist: "Thutmose", year: "c. 1345 BCE", file: "Nofretete Neues Museum.jpg" }
+    ]
+  },
+  {
+    id: "greek", name: "Ancient Greece", era: "Classical Antiquity", dates: "c. 800 – 31 BCE", year: "800 BCE",
+    wall: "#4f6170", dot: "#7f9bb3",
+    text: "Greek sculptors moved from stiff, frontal kouroi to the relaxed contrapposto stance and idealised anatomy of the Classical period, then to the drama and movement of the Hellenistic age. Their ideals of proportion shaped Western art for millennia.",
+    traits: ["Idealised human body", "Contrapposto (weight-shift) pose", "Mathematical proportion"],
+    artists: "Myron, Phidias, Praxiteles, Polykleitos",
+    works: [
+      { title: "Venus de Milo", artist: "Alexandros of Antioch", year: "c. 150–125 BCE", file: "Venus de Milo Louvre Ma399 n4.jpg" },
+      { title: "Winged Victory of Samothrace", artist: "Unknown", year: "c. 200–190 BCE", file: "Victoire de Samothrace - Musée du Louvre - 2.jpg" }
+    ]
+  },
+  {
+    id: "roman", name: "Ancient Rome", era: "Classical Antiquity", dates: "c. 500 BCE – 476 CE", year: "500 BCE",
+    wall: "#6b3a30", dot: "#b4584a",
+    text: "Romans borrowed Greek ideals but added unflinching realism in portraiture, engineering on an enormous scale, and vivid wall painting. Art served the state: emperors used statues, arches and coins as propaganda.",
+    traits: ["Realistic (veristic) portraiture", "Monumental architecture: the arch, the dome, concrete", "Fresco and mosaic"],
+    artists: "Largely anonymous workshops; architect Apollodorus of Damascus",
+    works: [
+      { title: "Augustus of Prima Porta", artist: "Unknown", year: "1st century CE", file: "Statue-Augustus.jpg" },
+      { title: "The Colosseum", artist: "Vespasian & Titus", year: "70–80 CE", file: "Colosseum in Rome, Italy - April 2007.jpg" }
+    ]
+  },
+  {
+    id: "byzantine", name: "Byzantine", era: "Middle Ages", dates: "c. 330 – 1453", year: "330",
+    wall: "#2f3f5c", dot: "#d8b04a",
+    text: "In the Eastern Roman Empire art turned toward the spiritual. Flat, gold-ground mosaics and icons present saints and emperors as timeless, weightless figures meant to evoke heaven rather than depict earth.",
+    traits: ["Gold backgrounds", "Flattened, frontal figures", "Mosaics and painted icons"],
+    artists: "Mostly anonymous; later Andrei Rublev and Theophanes the Greek",
+    works: [
+      { title: "Emperor Justinian and his retinue", artist: "Unknown", year: "c. 547", file: "Meister von San Vitale in Ravenna 004.jpg" },
+      { title: "Hagia Sophia", artist: "Anthemius of Tralles & Isidore of Miletus", year: "537", file: "Hagia Sophia Mars 2013.jpg" }
+    ]
+  },
+  {
+    id: "gothic", name: "Romanesque & Gothic", era: "Middle Ages", dates: "c. 1000 – 1400", year: "1000",
+    wall: "#3d3550", dot: "#8a6fc0",
+    text: "Cathedrals became encyclopedias in stone and glass. Gothic builders used pointed arches and flying buttresses to open walls for vast stained-glass windows, while painters like Giotto began to give figures real weight and emotion.",
+    traits: ["Pointed arches, rib vaults, flying buttresses", "Stained glass", "Growing naturalism and emotion"],
+    artists: "Giotto, Duccio, Simone Martini, Cimabue",
+    works: [
+      { title: "Lamentation (The Mourning of Christ)", artist: "Giotto", year: "c. 1305", file: "Giotto - Scrovegni - -36- - Lamentation (The Mourning of Christ).jpg" },
+      { title: "Notre-Dame de Chartres, north rose window", artist: "Unknown", year: "c. 1235", file: "Chartres - rosace nord.jpg" }
+    ]
+  },
+  {
+    id: "renaissance", name: "Italian Renaissance", era: "Renaissance", dates: "c. 1400 – 1520", year: "1400",
+    wall: "#5e4a2c", dot: "#c08a3e",
+    text: "Florence, then Rome, revived the art of antiquity. Linear perspective, anatomical study and the new medium of oil let artists build convincing worlds, and the artist rose from craftsman to celebrated genius.",
+    traits: ["Linear perspective", "Classical revival and humanism", "Sfumato and chiaroscuro"],
+    artists: "Leonardo da Vinci, Michelangelo, Raphael, Botticelli, Masaccio, Donatello",
+    works: [
+      { title: "Mona Lisa", artist: "Leonardo da Vinci", year: "c. 1503–1519", file: "Mona Lisa, by Leonardo da Vinci, from C2RMF retouched.jpg" },
+      { title: "The Birth of Venus", artist: "Sandro Botticelli", year: "c. 1485", file: "Sandro Botticelli - La nascita di Venere - Google Art Project - edited.jpg" },
+      { title: "The Creation of Adam", artist: "Michelangelo", year: "c. 1512", file: "Michelangelo - Creation of Adam (cropped).jpg" }
+    ]
+  },
+  {
+    id: "northern", name: "Northern Renaissance", era: "Renaissance", dates: "c. 1430 – 1580", year: "1430",
+    wall: "#33443a", dot: "#5f8a6c",
+    text: "In Flanders and Germany painters perfected oil glazes to render every reflection, fabric and hair with jewel-like precision. Their pictures are full of hidden symbols, everyday life and, in Bosch's case, wild imagination.",
+    traits: ["Meticulous detail in oil", "Hidden symbolism", "Landscapes and scenes of daily life"],
+    artists: "Jan van Eyck, Albrecht Dürer, Hieronymus Bosch, Pieter Bruegel the Elder, Hans Holbein",
+    works: [
+      { title: "The Arnolfini Portrait", artist: "Jan van Eyck", year: "1434", file: "Van Eyck - Arnolfini Portrait.jpg" },
+      { title: "The Hunters in the Snow", artist: "Pieter Bruegel the Elder", year: "1565", file: "Pieter Bruegel the Elder - Hunters in the Snow (Winter) - Google Art Project.jpg" },
+      { title: "Self-Portrait at 28", artist: "Albrecht Dürer", year: "1500", file: "Albrecht Dürer - 1500 self-portrait (High resolution and detail).jpg" }
+    ]
+  },
+  {
+    id: "mannerism", name: "Mannerism", era: "Renaissance", dates: "c. 1520 – 1600", year: "1520",
+    wall: "#4b3a4f", dot: "#a07aa8",
+    text: "After the High Renaissance, artists deliberately bent its rules. Elongated limbs, unstable compositions, acid colours and crowded spaces trade harmony for elegance, tension and artifice.",
+    traits: ["Elongated, twisting figures", "Ambiguous space", "Unnatural, sharp colour"],
+    artists: "Parmigianino, Pontormo, Bronzino, El Greco",
+    works: [
+      { title: "Madonna with the Long Neck", artist: "Parmigianino", year: "1535–1540", file: "Parmigianino - Madonna dal collo lungo - Google Art Project.jpg" },
+      { title: "The Burial of the Count of Orgaz", artist: "El Greco", year: "1586", file: "El Greco - The Burial of the Count of Orgaz.JPG" }
+    ]
+  },
+  {
+    id: "baroque", name: "Baroque", era: "Early Modern", dates: "c. 1600 – 1750", year: "1600",
+    wall: "#3a1f1f", dot: "#9c3b34",
+    text: "Drama, movement and theatrical light. Fuelled by the Counter-Reformation and powerful monarchies, Baroque art grabs the viewer emotionally, while the Dutch Golden Age turned the same skills to quiet domestic scenes.",
+    traits: ["Tenebrism: dramatic light and shadow", "Dynamic diagonals and movement", "Emotional intensity"],
+    artists: "Caravaggio, Rembrandt, Vermeer, Velázquez, Rubens, Bernini, Artemisia Gentileschi",
+    works: [
+      { title: "The Calling of Saint Matthew", artist: "Caravaggio", year: "1599–1600", file: "The Calling of Saint Matthew-Caravaggo (1599-1600).jpg" },
+      { title: "Las Meninas", artist: "Diego Velázquez", year: "1656", file: "Las Meninas, by Diego Velázquez, from Prado in Google Earth.jpg" },
+      { title: "The Night Watch", artist: "Rembrandt", year: "1642", file: "The Nightwatch by Rembrandt - Rijksmuseum.jpg" },
+      { title: "Girl with a Pearl Earring", artist: "Johannes Vermeer", year: "c. 1665", file: "1665 Girl with a Pearl Earring.jpg" }
+    ]
+  },
+  {
+    id: "rococo", name: "Rococo", era: "Early Modern", dates: "c. 1720 – 1780", year: "1720",
+    wall: "#7d8a7a", dot: "#e7b7c0",
+    text: "Lighter, playful and decorative, Rococo moved from the royal court to the aristocratic salon. Pastel colours, curling ornament and scenes of flirtation in idyllic gardens reflect a culture of leisure.",
+    traits: ["Pastel palette", "Asymmetric, curving ornament", "Love, leisure and fêtes galantes"],
+    artists: "Jean-Antoine Watteau, François Boucher, Jean-Honoré Fragonard, Giovanni Battista Tiepolo",
+    works: [
+      { title: "The Swing", artist: "Jean-Honoré Fragonard", year: "1767", file: "Fragonard, The Swing.jpg" },
+      { title: "Pilgrimage to Cythera", artist: "Jean-Antoine Watteau", year: "1717", file: "L'Embarquement pour Cythere, by Antoine Watteau, from C2RMF retouched.jpg" }
+    ]
+  },
+  {
+    id: "neoclassicism", name: "Neoclassicism", era: "Age of Revolution", dates: "c. 1760 – 1830", year: "1760",
+    wall: "#6d6a63", dot: "#d9d4c7",
+    text: "A reaction against Rococo frivolity, inspired by the excavations of Pompeii and Enlightenment ideals. Crisp outlines, stable compositions and stories of civic virtue served the moral and political moment of the French Revolution.",
+    traits: ["Clarity, order, restraint", "Classical subjects and heroic virtue", "Smooth, invisible brushwork"],
+    artists: "Jacques-Louis David, Jean-Auguste-Dominique Ingres, Antonio Canova, Angelica Kauffman",
+    works: [
+      { title: "Oath of the Horatii", artist: "Jacques-Louis David", year: "1784", file: "Jacques-Louis David - Oath of the Horatii - Google Art Project.jpg" },
+      { title: "The Death of Marat", artist: "Jacques-Louis David", year: "1793", file: "Death of Marat by David.jpg" }
+    ]
+  },
+  {
+    id: "romanticism", name: "Romanticism", era: "Age of Revolution", dates: "c. 1800 – 1850", year: "1800",
+    wall: "#283543", dot: "#4f7aa0",
+    text: "Emotion over reason. Romantic artists painted the sublime power of nature, the horrors of war, exotic lands and the lone individual, using loose, expressive brushwork and stormy colour.",
+    traits: ["The sublime in nature", "Intense emotion and imagination", "Political and historical drama"],
+    artists: "Eugène Delacroix, Caspar David Friedrich, Francisco Goya, J. M. W. Turner, Théodore Géricault",
+    works: [
+      { title: "Wanderer above the Sea of Fog", artist: "Caspar David Friedrich", year: "c. 1818", file: "Caspar David Friedrich - Wanderer above the sea of fog.jpg" },
+      { title: "Liberty Leading the People", artist: "Eugène Delacroix", year: "1830", file: "Eugène Delacroix - Le 28 Juillet. La Liberté guidant le peuple.jpg" },
+      { title: "The Third of May 1808", artist: "Francisco Goya", year: "1814", file: "El Tres de Mayo, by Francisco de Goya, from Prado thin black margin.jpg" }
+    ]
+  },
+  {
+    id: "ukiyoe", name: "Ukiyo-e", era: "Age of Revolution", dates: "c. 1660 – 1900", year: "1830s",
+    wall: "#3d4a4a", dot: "#2f6f8f",
+    text: "“Pictures of the floating world”: Japanese woodblock prints of actors, courtesans and landscapes, mass-produced for city dwellers. When they reached Europe in the 1850s, their flat colour and bold cropping electrified the Impressionists.",
+    traits: ["Woodblock printing", "Flat areas of colour, strong outline", "Asymmetric, cropped compositions"],
+    artists: "Katsushika Hokusai, Utagawa Hiroshige, Kitagawa Utamaro",
+    works: [
+      { title: "The Great Wave off Kanagawa", artist: "Katsushika Hokusai", year: "c. 1831", file: "Tsunami by hokusai 19th century.jpg" },
+      { title: "Sudden Shower over Shin-Ōhashi Bridge", artist: "Utagawa Hiroshige", year: "1857", file: "Hiroshige - Sudden shower over Shin-Ohashi bridge and Atake.jpg" }
+    ]
+  },
+  {
+    id: "realism", name: "Realism", era: "19th Century", dates: "c. 1840 – 1880", year: "1840",
+    wall: "#4a4236", dot: "#8c7a5c",
+    text: "Realists rejected idealised history painting to show ordinary people and labour truthfully and at monumental scale. Courbet declared he could not paint an angel because he had never seen one.",
+    traits: ["Everyday subjects and working people", "Social critique", "Rejection of academic idealisation"],
+    artists: "Gustave Courbet, Jean-François Millet, Honoré Daumier, Édouard Manet",
+    works: [
+      { title: "The Gleaners", artist: "Jean-François Millet", year: "1857", file: "Jean-François Millet - Gleaners - Google Art Project 2.jpg" },
+      { title: "Olympia", artist: "Édouard Manet", year: "1863", file: "Edouard Manet - Olympia - Google Art Project 3.jpg" }
+    ]
+  },
+  {
+    id: "impressionism", name: "Impressionism", era: "19th Century", dates: "c. 1867 – 1886", year: "1867",
+    wall: "#5a6f80", dot: "#9ec3dd",
+    text: "Painting outdoors with portable paint tubes, the Impressionists captured fleeting light and modern Parisian life in quick, broken brushstrokes. Rejected by the official Salon, they held their own exhibitions and named a movement after a critic's insult.",
+    traits: ["Visible, broken brushwork", "Light and atmosphere at a moment in time", "Painting en plein air"],
+    artists: "Claude Monet, Pierre-Auguste Renoir, Edgar Degas, Berthe Morisot, Camille Pissarro, Mary Cassatt",
+    works: [
+      { title: "Impression, Sunrise", artist: "Claude Monet", year: "1872", file: "Monet - Impression, Sunrise.jpg" },
+      { title: "Bal du moulin de la Galette", artist: "Pierre-Auguste Renoir", year: "1876", file: "Pierre-Auguste Renoir, Le Moulin de la Galette.jpg" },
+      { title: "Water Lilies", artist: "Claude Monet", year: "1906", file: "Claude Monet - Water Lilies - 1906, Ryerson.jpg" }
+    ]
+  },
+  {
+    id: "postimpressionism", name: "Post-Impressionism", era: "19th Century", dates: "c. 1886 – 1905", year: "1886",
+    wall: "#2b3a5a", dot: "#e0b43a",
+    text: "Not a single style but a group of individualists who pushed beyond Impressionism: Seurat's scientific dots, Cézanne's structured planes, Gauguin's symbolic colour and van Gogh's emotional brushwork all laid the groundwork for modern art.",
+    traits: ["Expressive or symbolic colour", "Emphasis on form and structure", "Personal, individual styles"],
+    artists: "Vincent van Gogh, Paul Cézanne, Paul Gauguin, Georges Seurat, Henri de Toulouse-Lautrec",
+    works: [
+      { title: "The Starry Night", artist: "Vincent van Gogh", year: "1889", file: "Van Gogh - Starry Night - Google Art Project.jpg" },
+      { title: "A Sunday Afternoon on La Grande Jatte", artist: "Georges Seurat", year: "1884–1886", file: "A Sunday on La Grande Jatte, Georges Seurat, 1884.jpg" },
+      { title: "The Card Players", artist: "Paul Cézanne", year: "c. 1893", file: "Les Joueurs de cartes, par Paul Cézanne.jpg" }
+    ]
+  },
+  {
+    id: "symbolism", name: "Symbolism & Art Nouveau", era: "Fin de siècle", dates: "c. 1880 – 1910", year: "1880",
+    wall: "#3b4a2f", dot: "#c9a43a",
+    text: "Turning inward to dreams, myth, anxiety and desire, Symbolists painted ideas rather than appearances. Art Nouveau spread their sinuous lines into posters, jewellery, furniture and architecture.",
+    traits: ["Dreams, myth and the psyche", "Flowing, organic line", "Decorative pattern and gold"],
+    artists: "Gustav Klimt, Edvard Munch, Odilon Redon, Alphonse Mucha, Gustave Moreau",
+    works: [
+      { title: "The Kiss", artist: "Gustav Klimt", year: "1907–1908", file: "The Kiss - Gustav Klimt - Google Cultural Institute.jpg" },
+      { title: "The Scream", artist: "Edvard Munch", year: "1893", file: "Edvard Munch, 1893, The Scream, oil, tempera and pastel on cardboard, 91 x 73 cm, National Gallery of Norway.jpg" }
+    ]
+  },
+  {
+    id: "fauvism", name: "Fauvism & Expressionism", era: "Early Modernism", dates: "c. 1905 – 1920", year: "1905",
+    wall: "#5a2a3a", dot: "#e0503a",
+    text: "The Fauves (“wild beasts”) freed colour from description, while German Expressionists distorted form to convey inner feeling. Kandinsky went further and abandoned recognisable subjects altogether.",
+    traits: ["Arbitrary, intense colour", "Distortion for emotional effect", "The first fully abstract paintings"],
+    artists: "Henri Matisse, André Derain, Ernst Ludwig Kirchner, Franz Marc, Wassily Kandinsky",
+    works: [
+      { title: "Woman with a Hat", artist: "Henri Matisse", year: "1905", file: "Henri Matisse, 1905, Woman with a Hat (La femme au chapeau), oil on canvas, 80.65 x 59.69 cm, San Francisco Museum of Modern Art.jpg" },
+      { title: "Blue Horse I", artist: "Franz Marc", year: "1911", file: "Franz Marc - Blue Horse I - Google Art Project.jpg" },
+      { title: "Composition VII", artist: "Wassily Kandinsky", year: "1913", file: "Vassily Kandinsky, 1913 - Composition 7.jpg" }
+    ]
+  },
+  {
+    id: "cubism", name: "Cubism & Futurism", era: "Early Modernism", dates: "c. 1907 – 1920", year: "1907",
+    wall: "#5a5246", dot: "#a8946e",
+    text: "Picasso and Braque shattered single-point perspective, showing objects from many angles at once. In Italy, the Futurists borrowed those fractured planes to celebrate speed, machines and the modern city.",
+    traits: ["Multiple viewpoints at once", "Geometric fragmentation", "Speed and dynamism (Futurism)"],
+    artists: "Pablo Picasso, Georges Braque, Juan Gris, Umberto Boccioni, Giacomo Balla",
+    works: [
+      { title: "Portrait of Pablo Picasso", artist: "Juan Gris", year: "1912", file: "Juan Gris - Portrait of Pablo Picasso - Google Art Project.jpg" },
+      { title: "The City Rises", artist: "Umberto Boccioni", year: "1910", file: "Umberto Boccioni, 1910-11, The City Rises, oil on canvas, 199.3 x 301 cm, Museum of Modern Art New York.jpg" }
+    ]
+  },
+  {
+    id: "dada", name: "Dada & De Stijl", era: "Interwar", dates: "c. 1916 – 1931", year: "1916",
+    wall: "#e9e4d8", dot: "#d23a2a",
+    text: "Out of the First World War came two opposite answers. Dada mocked reason and the art world itself, presenting a urinal as sculpture. De Stijl and the Bauhaus sought a universal, rational order of primary colours and straight lines.",
+    traits: ["Readymades and anti-art (Dada)", "Primary colours and grids (De Stijl)", "Art, design and industry unite (Bauhaus)"],
+    artists: "Marcel Duchamp, Hannah Höch, Piet Mondrian, Theo van Doesburg, Walter Gropius",
+    works: [
+      { title: "Fountain", artist: "Marcel Duchamp (photo: Alfred Stieglitz)", year: "1917", file: "Duchamp Fountaine.jpg" },
+      { title: "Composition II in Red, Blue, and Yellow", artist: "Piet Mondrian", year: "1930", file: "Piet Mondriaan, 1930 - Mondrian Composition II in Red, Blue, and Yellow.jpg" }
+    ]
+  },
+  {
+    id: "surrealism", name: "Surrealism", era: "Interwar", dates: "c. 1924 – 1950", year: "1924",
+    wall: "#2f2a40", dot: "#7a64b0",
+    text: "Inspired by Freud, the Surrealists tried to unlock the unconscious through dream imagery, automatic drawing and startling juxtapositions: melting clocks, a pipe that is not a pipe, a fur-lined teacup.",
+    traits: ["Dream logic and the unconscious", "Uncanny juxtaposition", "Automatism and chance"],
+    artists: "Salvador Dalí, René Magritte, Max Ernst, Joan Miró, Frida Kahlo, Meret Oppenheim",
+    works: [
+      { title: "The Persistence of Memory", artist: "Salvador Dalí", year: "1931", link: "https://www.moma.org/collection/works/79018" },
+      { title: "The Treachery of Images", artist: "René Magritte", year: "1929", link: "https://collections.lacma.org/node/239578" }
+    ]
+  },
+  {
+    id: "abex", name: "Abstract Expressionism", era: "Post-war", dates: "c. 1943 – 1965", year: "1943",
+    wall: "#3a3a3a", dot: "#c0c0c0",
+    text: "After 1945 the centre of the art world moved to New York. Painters worked on vast canvases, either through energetic gesture (Pollock's drips, de Kooning's slashes) or immersive fields of colour (Rothko, Newman).",
+    traits: ["Huge scale", "Gesture and the act of painting", "Colour fields meant to envelop the viewer"],
+    artists: "Jackson Pollock, Willem de Kooning, Mark Rothko, Lee Krasner, Barnett Newman, Helen Frankenthaler",
+    works: [
+      { title: "One: Number 31, 1950", artist: "Jackson Pollock", year: "1950", link: "https://www.moma.org/collection/works/78386" },
+      { title: "No. 61 (Rust and Blue)", artist: "Mark Rothko", year: "1953", link: "https://www.moca.org/collection/work/no-61-rust-and-blue" }
+    ]
+  },
+  {
+    id: "pop", name: "Pop Art & Minimalism", era: "Post-war", dates: "c. 1955 – 1975", year: "1955",
+    wall: "#d8d2c6", dot: "#e23a7a",
+    text: "Pop artists embraced advertising, comics and celebrity, often by silkscreen or other mechanical means, blurring high and low culture. Minimalists stripped art down to industrial materials and simple geometry.",
+    traits: ["Consumer culture and mass media", "Mechanical reproduction", "Industrial, geometric simplicity (Minimalism)"],
+    artists: "Andy Warhol, Roy Lichtenstein, Claes Oldenburg, Donald Judd, Agnes Martin, Yayoi Kusama",
+    works: [
+      { title: "Campbell's Soup Cans", artist: "Andy Warhol", year: "1962", link: "https://www.moma.org/collection/works/79809" },
+      { title: "Drowning Girl", artist: "Roy Lichtenstein", year: "1963", link: "https://www.moma.org/collection/works/80696" }
+    ]
+  },
+  {
+    id: "contemporary", name: "Contemporary Art", era: "Today", dates: "c. 1970 – present", year: "1970",
+    wall: "#1f2a2e", dot: "#3ac0b0",
+    text: "No single style dominates. Conceptual art, performance, installation, video, street art and digital media sit side by side, and artists from every continent address identity, politics, technology and the planet.",
+    traits: ["Idea over object (Conceptual art)", "Installation, performance and new media", "Global and pluralist"],
+    artists: "Jean-Michel Basquiat, Louise Bourgeois, Yayoi Kusama, Ai Weiwei, Kara Walker, El Anatsui",
+    works: [
+      { title: "Untitled (Skull)", artist: "Jean-Michel Basquiat", year: "1981", link: "https://www.thebroad.org/art/jean-michel-basquiat/untitled" },
+      { title: "Maman", artist: "Louise Bourgeois", year: "1999", link: "https://www.guggenheim-bilbao.eus/en/the-collection/works/maman" }
+    ]
+  }
+];
+
+/* ---------- Build the rooms ---------- */
+const hall = document.getElementById("hall");
+const railList = document.querySelector("#rail ol");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function frameHTML(w, mi, wi) {
+  const label = `<div class="label"><em>${esc(w.title)}</em>${esc(w.artist)}, ${esc(w.year)}</div>`;
+  if (!w.file) {
+    return `<figure class="work"><button disabled style="cursor:default"><div class="mat"><div class="missing">
+      <strong>${esc(w.title)}</strong>Still under copyright, so it isn't shown here.<br><a href="${esc(w.link)}" target="_blank" rel="noopener">See it at the museum &rarr;</a>
+      </div></div></button>${label}</figure>`;
+  }
+  return `<figure class="work"><button data-m="${mi}" data-w="${wi}" aria-label="Enlarge ${esc(w.title)}">
+      <div class="mat"><img loading="lazy" src="${imgURL(w.file, 640)}" alt="${esc(w.title)} by ${esc(w.artist)}"></div>
+    </button>${label}</figure>`;
+}
+
+const rooms = [];
+
+// Entrance
+rooms.push({ id: "entrance", name: "Entrance", year: "", dot: "#c9a45c" });
+hall.insertAdjacentHTML("beforeend", `
+  <section class="room special" id="entrance" style="--wall:#2a221a">
+    <div class="intro">
+      <p style="letter-spacing:.2em;text-transform:uppercase;font-size:.75rem;color:var(--accent)">Welcome</p>
+      <h2>A Walk Through Art History</h2>
+      <p>${MOVEMENTS.length} rooms, from the caves of Lascaux to the present day. Each room is one movement: read the wall plaque, then click any painting to look closer.</p>
+      <button class="cta" data-go="1">Enter the museum &rarr;</button>
+      <p class="hint">Use &larr; &rarr; keys, swipe, scroll, or pick an era on the timeline below.</p>
+    </div>
+  </section>`);
+
+MOVEMENTS.forEach((m, mi) => {
+  rooms.push(m);
+  hall.insertAdjacentHTML("beforeend", `
+    <section class="room" id="${m.id}" style="--wall:${m.wall}" aria-label="${esc(m.name)}">
+      <aside class="plaque">
+        <div class="era">Room ${mi + 1} &middot; ${esc(m.era)}</div>
+        <h2>${esc(m.name)}</h2>
+        <div class="dates">${esc(m.dates)}</div>
+        <p>${esc(m.text)}</p>
+        <h3>Hallmarks</h3>
+        <ul>${m.traits.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+        <h3>Key artists</h3>
+        <div class="artists">${esc(m.artists)}</div>
+      </aside>
+      <div class="wall">${m.works.map((w, wi) => frameHTML(w, mi, wi)).join("")}</div>
+    </section>`);
+});
+
+// Exit
+rooms.push({ id: "exit", name: "Exit", year: "", dot: "#c9a45c" });
+hall.insertAdjacentHTML("beforeend", `
+  <section class="room special" id="exit" style="--wall:#2a221a">
+    <div class="intro">
+      <h2>Thanks for visiting</h2>
+      <p>Images are public-domain works hosted on <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>; click any painting, then "View source", for its file page and credits. Twentieth-century works still under copyright link to the museums that hold them.</p>
+      <p>Want to go deeper? Try the Met's <a href="https://www.metmuseum.org/toah/" target="_blank" rel="noopener">Heilbrunn Timeline of Art History</a>, <a href="https://smarthistory.org" target="_blank" rel="noopener">Smarthistory</a>, or <a href="https://artsandculture.google.com" target="_blank" rel="noopener">Google Arts &amp; Culture</a>.</p>
+      <button class="cta" data-go="0">&larr; Back to the entrance</button>
+    </div>
+  </section>`);
+
+// Timeline rail
+rooms.forEach((r, i) => {
+  railList.insertAdjacentHTML("beforeend", `
+    <li><button data-go="${i}" style="--c:${r.dot}" aria-label="Go to ${esc(r.name)}">
+      <span class="dot"></span><span class="nm">${esc(r.name)}</span><span class="yr">${esc(r.year || "")}</span>
+    </button></li>`);
+});
+
+/* Missing-image fallback: show a captioned placeholder with a Commons search link */
+hall.addEventListener("error", e => {
+  const img = e.target;
+  if (img.tagName !== "IMG") return;
+  const btn = img.closest("button");
+  const { m, w } = btn.dataset;
+  const work = MOVEMENTS[m].works[w];
+  const q = encodeURIComponent(`${work.title} ${work.artist}`);
+  btn.disabled = true; btn.style.cursor = "default";
+  img.parentElement.innerHTML = `<div class="missing"><strong>${esc(work.title)}</strong>Image couldn't load.<br>
+    <a href="https://commons.wikimedia.org/w/index.php?search=${q}&title=Special:MediaSearch&type=image" target="_blank" rel="noopener">Find it on Wikimedia Commons &rarr;</a></div>`;
+}, true);
+
+/* ---------- Navigation ---------- */
+const sections = [...hall.querySelectorAll(".room")];
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const roomCount = document.getElementById("roomCount");
+let current = 0;
+
+function go(i) {
+  i = Math.max(0, Math.min(sections.length - 1, i));
+  hall.scrollTo({ left: sections[i].offsetLeft });
+}
+
+function setCurrent(i) {
+  if (i === current && roomCount.textContent) return;
+  current = i;
+  prevBtn.disabled = i === 0;
+  nextBtn.disabled = i === sections.length - 1;
+  roomCount.textContent = `${i + 1} / ${sections.length}`;
+  railList.querySelectorAll("button").forEach((b, bi) => {
+    const on = bi === i;
+    b.setAttribute("aria-current", on);
+    if (on) b.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  });
+  history.replaceState(null, "", "#" + sections[i].id);
+}
+
+const io = new IntersectionObserver(entries => {
+  entries.forEach(en => { if (en.isIntersecting) setCurrent(sections.indexOf(en.target)); });
+}, { root: hall, threshold: 0.6 });
+sections.forEach(s => io.observe(s));
+
+prevBtn.onclick = () => go(current - 1);
+nextBtn.onclick = () => go(current + 1);
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-go]");
+  if (t) go(+t.dataset.go);
+});
+
+document.addEventListener("keydown", e => {
+  if (lightbox.open) return;
+  if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); go(current + 1); }
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(current - 1); }
+  else if (e.key === "Home") { e.preventDefault(); go(0); }
+  else if (e.key === "End") { e.preventDefault(); go(sections.length - 1); }
+});
+
+// Vertical mouse wheel walks between rooms (desktop only; mobile rooms scroll vertically)
+let wheelLock = 0;
+hall.addEventListener("wheel", e => {
+  if (matchMedia("(max-width: 760px)").matches) return;
+  if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+  if (e.target.closest(".plaque") && e.target.closest(".plaque").scrollHeight > e.target.closest(".plaque").clientHeight) return;
+  e.preventDefault();
+  const now = Date.now();
+  if (now - wheelLock < 600 || Math.abs(e.deltaY) < 8) return;
+  wheelLock = now;
+  go(current + (e.deltaY > 0 ? 1 : -1));
+}, { passive: false });
+
+/* ---------- Lightbox ---------- */
+const lightbox = document.getElementById("lightbox");
+const lbImg = lightbox.querySelector("img");
+const lbCap = lightbox.querySelector(".cap");
+hall.addEventListener("click", e => {
+  const btn = e.target.closest("button[data-m]");
+  if (!btn || btn.disabled) return;
+  const w = MOVEMENTS[btn.dataset.m].works[btn.dataset.w];
+  lbImg.src = imgURL(w.file, 1600);
+  lbImg.alt = `${w.title} by ${w.artist}`;
+  lbCap.innerHTML = `<em>${esc(w.title)}</em><small>${esc(w.artist)} &middot; ${esc(w.year)}</small>
+    <a href="${pageURL(w.file)}" target="_blank" rel="noopener">View source &amp; licence on Wikimedia Commons</a>`;
+  lightbox.showModal();
+});
+lightbox.querySelector(".close").onclick = () => lightbox.close();
+lightbox.addEventListener("click", e => { if (e.target === lightbox || e.target.classList.contains("lb-inner")) lightbox.close(); });
+
+/* Deep link to a room via #id */
+const start = sections.findIndex(s => "#" + s.id === location.hash);
+if (start > 0) requestAnimationFrame(() => { hall.style.scrollBehavior = "auto"; go(start); hall.style.scrollBehavior = ""; });
+setCurrent(Math.max(start, 0));
+</script>
+</body>
+</html>
